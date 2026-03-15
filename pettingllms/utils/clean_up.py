@@ -1,4 +1,5 @@
 import atexit
+import os
 import signal
 import sys
 import shutil
@@ -49,11 +50,17 @@ def cleanup_ray():
     
     if ray.is_initialized():
         ray.shutdown()
-    
-    for temp_dir in _TEMP_DIRS:
-        if Path(temp_dir).exists():
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            print(f"Removed temporary directory: {temp_dir}")
+
+    keep_temp_dirs = os.environ.get("PETTINGLLMS_KEEP_RAY_TMP", "0") == "1"
+    if keep_temp_dirs:
+        for temp_dir in _TEMP_DIRS:
+            if Path(temp_dir).exists():
+                print(f"Preserved temporary directory for debugging: {temp_dir}")
+    else:
+        for temp_dir in _TEMP_DIRS:
+            if Path(temp_dir).exists():
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                print(f"Removed temporary directory: {temp_dir}")
     
     print("Cleanup completed\n")
 
@@ -163,4 +170,3 @@ def cleanup_old_image_folders(base_dir: str = "tmp_image", max_subfolders: int =
         print(f"[Cleanup] Total folders deleted: {total_deleted}")
 
     return total_deleted
-

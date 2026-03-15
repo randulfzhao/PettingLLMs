@@ -1,7 +1,26 @@
 set -x
 
 export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1,2,3}
-export TRITON_PTXAS_PATH=/usr/local/cuda/bin/ptxas
+
+# Prefer Triton's bundled ptxas so Torch/Triton stays aligned with the
+# installed CUDA runtime. Falling back to /usr/local/cuda can break when the
+# system toolkit is newer than the PyTorch build (for example CUDA 13 vs cu128).
+TRITON_BUNDLED_PTXAS=$(
+python3 - <<'PY'
+import os
+try:
+    import triton
+except Exception:
+    print("")
+else:
+    print(os.path.join(os.path.dirname(triton.__file__), "backends", "nvidia", "bin", "ptxas"))
+PY
+)
+if [[ -n "${TRITON_BUNDLED_PTXAS}" && -x "${TRITON_BUNDLED_PTXAS}" ]]; then
+    export TRITON_PTXAS_PATH="${TRITON_BUNDLED_PTXAS}"
+else
+    export TRITON_PTXAS_PATH=/usr/local/cuda/bin/ptxas
+fi
 export VLLM_ATTENTION_BACKEND=FLASH_ATTN
 export VLLM_USE_FLASHINFER_SAMPLER=0
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:False"

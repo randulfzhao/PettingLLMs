@@ -74,16 +74,21 @@ def load_math_problem_batch(
     
 
     current_dir = Path(__file__).parent.parent.parent.parent
-    local_datasets_dir = current_dir / "data" / "math"
-    
-    if mode == "train":
-        parquet_file = local_datasets_dir /"train" /f"{dataset_name}.parquet"
-    else:
-        parquet_file = local_datasets_dir /"test" / f"{benchmark_name}.parquet"
-    
+    dataset_roots = [
+        current_dir / "datasets" / "math",
+        current_dir / "data" / "math",
+    ]
 
-    if not parquet_file.exists():
-        raise print(f"Dataset file not found: {parquet_file}")
+    relative_path = Path("train") / f"{dataset_name}.parquet" if mode == "train" else Path("test") / f"{benchmark_name}.parquet"
+    parquet_file = next((root / relative_path for root in dataset_roots if (root / relative_path).exists()), None)
+
+    if parquet_file is None:
+        checked_paths = [str(root / relative_path) for root in dataset_roots]
+        raise FileNotFoundError(
+            "Dataset file not found. Checked: "
+            + ", ".join(checked_paths)
+            + ". Please run scripts/dataprocess/load_math.py to generate the parquet files."
+        )
     
     print(f"Loading dataset from: {parquet_file}")
     ds = hf_load_dataset("parquet", data_files=str(parquet_file), split="train")
