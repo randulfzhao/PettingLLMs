@@ -1,6 +1,6 @@
 set -x
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export TRITON_PTXAS_PATH=/usr/local/cuda/bin/ptxas
 export VLLM_ATTENTION_BACKEND=FLASH_ATTN
 export VLLM_USE_FLASHINFER_SAMPLER=0
@@ -18,12 +18,16 @@ export LD_LIBRARY_PATH=$CUDA_HOME/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
 
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH}
 
+BASE_MODEL_PATH=${BASE_MODEL_PATH:-Qwen/Qwen3-1.7B}
+BENCHMARK=${BENCHMARK:-AIME24}
+EXPERIMENT_NAME=${EXPERIMENT_NAME:-math_qwen3_1p7b_multi_model}
 
-GPU_num=1
+TOTAL_GPU_num=4
+GPU_num=2
 
 
 model_0_config_path="models.model_0.ppo_trainer_config"
-model_0_resource="resource.n_gpus_per_node=$GPU_num  $model_0_config_path.trainer.n_gpus_per_node=$GPU_num $model_0_config_path.trainer.nnodes=1 $model_0_config_path.actor_rollout_ref.rollout.tensor_model_parallel_size=$GPU_num"
+model_0_resource="resource.n_gpus_per_node=$TOTAL_GPU_num  $model_0_config_path.trainer.n_gpus_per_node=$GPU_num $model_0_config_path.trainer.nnodes=1 $model_0_config_path.actor_rollout_ref.rollout.tensor_model_parallel_size=$GPU_num"
 
 model_1_config_path="models.model_1.ppo_trainer_config"
 model_1_resource="$model_1_config_path.trainer.n_gpus_per_node=$GPU_num $model_1_config_path.trainer.nnodes=1 $model_1_config_path.actor_rollout_ref.rollout.tensor_model_parallel_size=$GPU_num"
@@ -32,9 +36,9 @@ model_1_resource="$model_1_config_path.trainer.n_gpus_per_node=$GPU_num $model_1
 python3 -m pettingllms.trainer.train --config-path ../config/math --config-name math_L3_model \
     $model_0_resource \
     $model_1_resource \
-    base_models.policy_0.path="your base model path"\
-    base_models.policy_1.path="your base model path"\
-    training.experiment_name=math_multi_model\
+    base_models.policy_0.path="$BASE_MODEL_PATH"\
+    base_models.policy_1.path="$BASE_MODEL_PATH"\
+    training.experiment_name="$EXPERIMENT_NAME"\
     training.total_training_steps=200\
     training.train_batch_size=32\
     training.train_sample_num=8\
@@ -44,4 +48,4 @@ python3 -m pettingllms.trainer.train --config-path ../config/math --config-name 
     training.val_freq=10\
     training.resample_freq=3\
     env.dataset=polaris\
-    env.benchmark=AIME24\
+    env.benchmark="$BENCHMARK"\

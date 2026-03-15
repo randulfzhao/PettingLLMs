@@ -71,6 +71,7 @@ PettingLLMs is an open-source framework for on-policy reinforcement learning wit
 git clone https://github.com/pettingllms-ai/PettingLLMs.git
 cd PettingLLMs
 bash setup.bash
+conda activate mas
 ```
 
 ## 🎯 Quick Start

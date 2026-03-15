@@ -1,6 +1,6 @@
 set -x
 
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export TRITON_PTXAS_PATH=/usr/local/cuda/bin/ptxas
 export VLLM_ATTENTION_BACKEND=FLASH_ATTN
 export VLLM_USE_FLASHINFER_SAMPLER=0
@@ -18,6 +18,9 @@ export LD_LIBRARY_PATH=$CUDA_HOME/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
 
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH}
 
+BASE_MODEL_PATH=${BASE_MODEL_PATH:-Qwen/Qwen3-1.7B}
+BENCHMARK=${BENCHMARK:-AIME24}
+EXPERIMENT_NAME=${EXPERIMENT_NAME:-math_qwen3_1p7b_lora}
 
 GPU_num=4
 
@@ -28,8 +31,8 @@ model_0_resource="resource.n_gpus_per_node=$GPU_num  $model_0_config_path.traine
 
 python3 -m pettingllms.trainer.train --config-path ../config/math --config-name math_L2_lora \
     $model_0_resource \
-    base_models.policy_0.path="your base model path"\
-    training.experiment_name=math_1.7B_lora\
+    base_models.policy_0.path="$BASE_MODEL_PATH"\
+    training.experiment_name="$EXPERIMENT_NAME"\
     training.total_training_steps=200\
     training.train_batch_size=32\
     training.train_sample_num=8\
@@ -38,4 +41,4 @@ python3 -m pettingllms.trainer.train --config-path ../config/math --config-name 
     training.max_response_length=8192\
     training.val_freq=10\
     env.dataset=polaris\
-    env.benchmark=AIME24\
+    env.benchmark="$BENCHMARK"\
