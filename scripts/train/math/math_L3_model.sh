@@ -1,6 +1,6 @@
 set -x
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1,2,3}
 export TRITON_PTXAS_PATH=/usr/local/cuda/bin/ptxas
 export VLLM_ATTENTION_BACKEND=FLASH_ATTN
 export VLLM_USE_FLASHINFER_SAMPLER=0
@@ -21,9 +21,20 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH}
 BASE_MODEL_PATH=${BASE_MODEL_PATH:-Qwen/Qwen3-1.7B}
 BENCHMARK=${BENCHMARK:-AIME24}
 EXPERIMENT_NAME=${EXPERIMENT_NAME:-math_qwen3_1p7b_multi_model}
+TOTAL_GPU_num=${TOTAL_GPU_num:-4}
+GPU_num=${GPU_num:-2}
 
-TOTAL_GPU_num=4
-GPU_num=2
+TOTAL_TRAINING_STEPS=${TOTAL_TRAINING_STEPS:-200}
+TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE:-32}
+TRAIN_SAMPLE_NUM=${TRAIN_SAMPLE_NUM:-8}
+VALIDATE_SAMPLE_NUM=${VALIDATE_SAMPLE_NUM:-1}
+MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-2048}
+MAX_RESPONSE_LENGTH=${MAX_RESPONSE_LENGTH:-4096}
+VAL_FREQ=${VAL_FREQ:-10}
+RESAMPLE_FREQ=${RESAMPLE_FREQ:-3}
+MODEL_CHECKPOINTS_DIR=${MODEL_CHECKPOINTS_DIR:-checkpoints}
+PPO_DEFAULT_LOCAL_DIR=${PPO_DEFAULT_LOCAL_DIR:-$MODEL_CHECKPOINTS_DIR}
+CHECKPOINT_DIR=${CHECKPOINT_DIR:-$MODEL_CHECKPOINTS_DIR}
 
 
 model_0_config_path="models.model_0.ppo_trainer_config"
@@ -39,13 +50,18 @@ python3 -m pettingllms.trainer.train --config-path ../config/math --config-name 
     base_models.policy_0.path="$BASE_MODEL_PATH"\
     base_models.policy_1.path="$BASE_MODEL_PATH"\
     training.experiment_name="$EXPERIMENT_NAME"\
-    training.total_training_steps=200\
-    training.train_batch_size=32\
-    training.train_sample_num=8\
-    training.validate_sample_num=1\
-    training.max_prompt_length=2048\
-    training.max_response_length=4096\
-    training.val_freq=10\
-    training.resample_freq=3\
+    training.total_training_steps="$TOTAL_TRAINING_STEPS"\
+    training.train_batch_size="$TRAIN_BATCH_SIZE"\
+    training.train_sample_num="$TRAIN_SAMPLE_NUM"\
+    training.validate_sample_num="$VALIDATE_SAMPLE_NUM"\
+    training.max_prompt_length="$MAX_PROMPT_LENGTH"\
+    training.max_response_length="$MAX_RESPONSE_LENGTH"\
+    training.val_freq="$VAL_FREQ"\
+    training.resample_freq="$RESAMPLE_FREQ"\
+    training.model_checkpoints_dir="$MODEL_CHECKPOINTS_DIR"\
+    $model_0_config_path.checkpoint_dir="$CHECKPOINT_DIR"\
+    $model_1_config_path.checkpoint_dir="$CHECKPOINT_DIR"\
+    $model_0_config_path.trainer.default_local_dir="$PPO_DEFAULT_LOCAL_DIR"\
+    $model_1_config_path.trainer.default_local_dir="$PPO_DEFAULT_LOCAL_DIR"\
     env.dataset=polaris\
     env.benchmark="$BENCHMARK"\
